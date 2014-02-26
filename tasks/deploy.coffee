@@ -5,18 +5,19 @@
 # * Copyright (c) 2013 Zhe Feng
 # * Licensed under the MIT license.
 #
-"use strict"
+
+
+Connection = require "ssh2"
+moment = require "moment"
+
 module.exports = (grunt) ->
 
-  # Please see the Grunt documentation for more information regarding task
-  # creation: http://gruntjs.com/creating-tasks
   grunt.registerMultiTask "deploy", "Your task description goes here.", ->
     self = this
     done = self.async()
-    Connection = require("ssh2")
-    moment = require("moment")
-    timeStamp = moment().format("YYYYMMDDHHmmssSSS")
+    timeStamp = moment().format "YYYYMMDDHHmmssSSS"
     options = self.options()
+
     connections = []
     execSingleServer = (server, connection) ->
       exec = (cmd, showLog, next) ->
