@@ -17,7 +17,7 @@ module.exports = class Git
         return @_exec(cmd)
 
     getHeadCommit: ->
-        cmd = util.format 'git --git-dir=%s rev-parse --abbrev-ref HEAD', @repoPath
+        cmd = util.format 'git --git-dir=%s rev-parse HEAD', @repoPath
         return @_exec(cmd)
 
     _exec: (cmd) ->

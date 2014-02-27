@@ -5,55 +5,83 @@ Q = require 'q'
 
 class Connection extends Ssh
 
-      run: (cmd, log, done) ->
+  constructor: (server) ->
 
-        deferred = Q.defer()
+    @on "connect", ->
+      msg = util.format("Connecting to %s", @_host)
+      @log msg
 
-        console.log "Executing: #{cmd}" if log
+    @on "ready", ->
+      msg = util.format("Connected to %s", @_host)
+      @log msg
+      # execSingleServer server, c
 
-        @exec cmd, (err, stream) ->
+    @on "error", (err) ->
+      msg = util.format("Error connecting to %s: ", @_host, err)
+      @log msg
+      throw err  if err
 
-          result = null
+    @on "close", (had_error) ->
+      msg = util.format("Closed connection to %s", @_host)
+      @log msg
+      #checkCompleted()
 
-          throw err  if err
+    super()
 
-          stream.on "data", (data, extended) ->
-            result = data + ''
 
-          stream.on "end", ->
-            response = if done then done(result) else null
-            deferred.resolve(response)
+  run: (cmd, log, done) ->
 
-        return deferred.promise
+    deferred = Q.defer()
 
-      cd: (path) ->
-        cmd = util.format 'cd %s', path
-        return @run cmd, true
+    console.log "Executing: #{cmd}" if log
 
-      doesPathExist: (path) ->
-        cmd = util.format '[ -e %s ] && echo 1 || echo 0', path
-        return @run cmd, true, (result) ->
-          result = parseInt(result)
-          return if result is 1 then true else false
+    @exec cmd, (err, stream) ->
 
-      mkDir: (path) ->
-        cmd = util.format 'mkdir -p ', path
-        return @run cmd, true, (result) ->
-          console.log "Created #{path}"
+      result = null
 
-      rmDir: (path) ->
-        cmd = util.format 'rm -rf ', path
-        return @run cmd, true, (result) ->
-          console.log "Removing #{path}"
+      throw err  if err
 
-      gitClone: (remotePath, path) ->
-        cmd = util.format 'git clone %s %s', remotePath, path
-        return @run cmd, true, (result) ->
-          console.log "Cloned #{remotePath} to #{path}"
+      stream.on "data", (data, extended) ->
+        result = data + ''
 
-      gitReset: (sha, gitPath) ->
-        cmd = util.format 'git --git-dir=%s reset --hard %s', gitPath, sha
-        return @run cmd, true, (result) ->
-          console.log "Reset HEAD to #{sha}"
+      stream.on "end", ->
+        response = if done then done(result) else null
+        deferred.resolve(response)
+
+    return deferred.promise
+
+  cd: (path) ->
+    cmd = util.format 'cd %s', path
+    return @run cmd, true
+
+  doesPathExist: (path) ->
+    cmd = util.format '[ -e %s ] && echo 1 || echo 0', path
+    return @run cmd, true, (result) ->
+      result = parseInt(result)
+      return if result is 1 then true else false
+
+  mkDir: (path) ->
+    cmd = util.format 'mkdir -p ', path
+    return @run cmd, true, (result) ->
+      console.log "Created #{path}"
+
+  rmDir: (path) ->
+    cmd = util.format 'rm -rf ', path
+    return @run cmd, true, (result) ->
+      console.log "Removing #{path}"
+
+  gitClone: (remotePath, path) ->
+    cmd = util.format 'git clone %s %s', remotePath, path
+    return @run cmd, true, (result) ->
+      console.log "Cloned #{remotePath} to #{path}"
+
+  gitReset: (sha, gitPath) ->
+    cmd = util.format 'git --git-dir=%s reset --hard %s', gitPath, sha
+    return @run cmd, true, (result) ->
+      console.log "Reset HEAD to #{sha}"
+
+  log: (msg) ->
+    console.log msg
+
 
 module.exports = Connection

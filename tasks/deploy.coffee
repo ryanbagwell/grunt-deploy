@@ -21,11 +21,111 @@ shelljs = require 'shelljs'
 
 
 
-
-
 module.exports = (grunt) ->
 
+  jobs =
+
+    setup: (options, done) ->
+
+      connection = new Connection()
+
+      connection.on 'ready', ->
+
+        connection.doesPathExist(options.releasesPath).then (exists) ->
+          if not exists
+            return connection.mkDir(options.releasesPath)
+        # .then (exists) ->
+        #   return connection.doesPathExist(options.buildPath)
+        # .then (exists) ->
+        #   if exists
+        #     return connection.rmDir(path.join(options.releasesPath, '_build'))
+        # # .then ->
+        # #   return connection.mkDir(path.join(options.releasesPath, '_build'))
+        .fail (error) ->
+          console.log error
+          done()
+        .fin ->
+          done()
+
+      connection.connect options.server
+
+
+    launch: (options, done) ->
+
+      git = new Git path.join(process.env['PWD'], '.git')
+      gitRemote = git.getRemoteOrigin()
+      head = git.getHeadCommit()
+
+      connection = new Connection()
+
+      connection.on 'ready', ->
+
+        connection.doesPathExist(options.buildPath).then (exists) ->
+          return connection.rmDir(options.buildPath) if exists
+        .then ->
+          return connection.mkDir(options.buildPath)
+        .then ->
+          return connection.gitClone gitRemote, options.buildPath
+        .then ->
+          return connection.gitReset(head, options.buildPath)
+        .fail (error) ->
+          console.log error
+        .fin ->
+          console.log 'Done.'
+          done()
+
+      connection.connect options.server
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+  validateJob = (jobName) ->
+    validJobs = ['setup', 'launch',]
+
+    return if jobName in validJobs
+
+    grunt.fail.fatal util.format('Invalid job: %s. Choices are: %s', jobName, validJobs.join(', '))
+
+
   grunt.registerMultiTask "deploy", "deploys your code", ->
+
+    done = @async()
+
+    requestedJob = if @args[0] then @args[0] else 'launch'
+
+    validateJob(requestedJob)
+
+    defaultOptions =
+
+      buildPath: path.join @options().releasesPath, '_build'
+
+      preSetup: ->
+      postSetup: ->
+      preDeploy: ->
+      postDeploy: ->
+
+    options = @options(defaultOptions)
+
+    jobs[requestedJob](options, done)
+
+    return
+
+
+
+
+
+
+
 
     self = this
     done = self.async()
@@ -74,41 +174,8 @@ module.exports = (grunt) ->
         return
 
 
-      setup = ->
 
-        connection.doesPathExist(options.releasesPath).then (exists) ->
-          if not exists
-            return connection.mkDir(options.releasesPath)
-        .then (exists) ->
-          return connection.doesPathExist(options.buildPath)
-        .then (exists) ->
 
-          if exists
-            return connection.rmDir(path.join(options.releasesPath, '_build'))
-        # .then ->
-        #   return connection.mkDir(path.join(options.releasesPath, '_build'))
-        .fail (error) ->
-          console.log error
-
-      git = new Git path.join(process.env['PWD'], '.git')
-      remote = git.getRemoteOrigin()
-      head = git.getHeadCommit()
-
-      deploy = ->
-
-        connection.cd(options.buildPath).then ->
-          return connection.gitClone remote, options.buildPath
-
-        .then ->
-          return connection.gitReset(head, options.buildPath)
-
-        .fail (error) ->
-          console.log error
-
-      #setup()
-      deploy()
-
-      return
 
 
       execCmds options.cmds_before_deploy, 0, true, (prevResult) ->
@@ -156,27 +223,27 @@ module.exports = (grunt) ->
       done()  if completed >= length
       return
 
-    options.servers.forEach (server) ->
-      c = new Connection()
+    # options.servers.forEach (server) ->
+    #   c = new Connection()
 
-      c.on "connect", ->
-        console.log "Connecting to server: " + server.host
-        return
+    #   c.on "connect", ->
+    #     console.log "Connecting to server: " + server.host
+    #     return
 
-      c.on "ready", ->
-        console.log "Connected to server: " + server.host
-        execSingleServer server, c
-        return
+    #   c.on "ready", ->
+    #     console.log "Connected to server: " + server.host
+    #     execSingleServer server, c
+    #     return
 
-      c.on "error", (err) ->
-        console.log "Error on server: " + server.host
-        console.error err
-        throw err  if err
-        return
+    #   c.on "error", (err) ->
+    #     console.log "Error on server: " + server.host
+    #     console.error err
+    #     throw err  if err
+    #     return
 
-      c.on "close", (had_error) ->
-        console.log "Closed connection for server: " + server.host
-        checkCompleted()
-        return
+    #   c.on "close", (had_error) ->
+    #     console.log "Closed connection for server: " + server.host
+    #     checkCompleted()
+    #     return
 
-      c.connect server
+    #   c.connect server
