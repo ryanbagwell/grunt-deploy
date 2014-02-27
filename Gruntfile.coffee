@@ -10,12 +10,16 @@ module.exports = (grunt) ->
 
   # Project configuration.
   grunt.initConfig
+
+    pkg: grunt.file.readJSON "package.json"
+
     jshint:
       all: [
         "Gruntfile.js"
         "tasks/*.js"
         "<%= nodeunit.tests %>"
       ]
+
       options:
         jshintrc: ".jshintrc"
 

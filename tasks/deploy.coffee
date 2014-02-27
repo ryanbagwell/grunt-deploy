@@ -7,37 +7,63 @@
 #
 
 
-Connection = require "ssh2"
+Connection = require "../lib/connection"
+Git = require '../lib/git'
+
 moment = require "moment"
+fs = require 'fs'
+util = require 'util'
+
+path = require 'path'
+#nodegit = require 'nodegit'
+shelljs = require 'shelljs'
+
+
+
+
+
 
 module.exports = (grunt) ->
 
-  grunt.registerMultiTask "deploy", "Your task description goes here.", ->
+  grunt.registerMultiTask "deploy", "deploys your code", ->
+
     self = this
     done = self.async()
     timeStamp = moment().format "YYYYMMDDHHmmssSSS"
     options = self.options()
-
     connections = []
-    execSingleServer = (server, connection) ->
-      exec = (cmd, showLog, next) ->
 
-        #console.log(server.username + "@" + server.host + ":~$ " + cmd);
+    options.buildPath = path.join(options.releasesPath, '_build')
+
+
+
+
+
+    execSingleServer = (server, connection) ->
+
+      exec = (cmd, showLog, done) ->
+
+        deferred = q.defer()
+
         connection.exec cmd, (err, stream) ->
+
+          result = null
+
           throw err  if err
+
           stream.on "data", (data, extended) ->
-            showLog and console.log(data + "")
-            return
+            result = data + ''
+            console.log result
 
           stream.on "end", ->
-            next and next()
-            return
+            response = if done then done(result) else null
+            deferred.resolve(response)
 
-          return
+        return deferred.promise
 
-        return
 
       execCmds = (cmds, index, showLog, next) ->
+
         if not cmds or cmds.length <= index
           next and next()
         else
@@ -47,13 +73,56 @@ module.exports = (grunt) ->
 
         return
 
-      console.log "executing cmds before deploy"
-      execCmds options.cmds_before_deploy, 0, true, ->
+
+      setup = ->
+
+        connection.doesPathExist(options.releasesPath).then (exists) ->
+          if not exists
+            return connection.mkDir(options.releasesPath)
+        .then (exists) ->
+          return connection.doesPathExist(options.buildPath)
+        .then (exists) ->
+
+          if exists
+            return connection.rmDir(path.join(options.releasesPath, '_build'))
+        # .then ->
+        #   return connection.mkDir(path.join(options.releasesPath, '_build'))
+        .fail (error) ->
+          console.log error
+
+      git = new Git path.join(process.env['PWD'], '.git')
+      remote = git.getRemoteOrigin()
+      head = git.getHeadCommit()
+
+      deploy = ->
+
+        connection.cd(options.buildPath).then ->
+          return connection.gitClone remote, options.buildPath
+
+        .then ->
+          return connection.gitReset(head, options.buildPath)
+
+        .fail (error) ->
+          console.log error
+
+      #setup()
+      deploy()
+
+      return
+
+
+      execCmds options.cmds_before_deploy, 0, true, (prevResult) ->
+
         console.log "cmds before deploy executed"
+
         createFolder = "cd " + options.deploy_path + "/releases && mkdir " + timeStamp
+
         removeCurrent = "rm -rf " + options.deploy_path + "/current"
+
         setCurrent = "ln -s " + options.deploy_path + "/releases/" + timeStamp + " " + options.deploy_path + "/current"
+
         console.log "start deploy"
+
         exec createFolder + " && " + removeCurrent + " && " + setCurrent, false, ->
           sys = require("sys")
           execLocal = require("child_process").exec
@@ -74,8 +143,14 @@ module.exports = (grunt) ->
 
       return
 
+
+
+
+
     length = options.servers.length
+
     completed = 0
+
     checkCompleted = ->
       completed++
       done()  if completed >= length
@@ -83,6 +158,7 @@ module.exports = (grunt) ->
 
     options.servers.forEach (server) ->
       c = new Connection()
+
       c.on "connect", ->
         console.log "Connecting to server: " + server.host
         return
@@ -104,8 +180,3 @@ module.exports = (grunt) ->
         return
 
       c.connect server
-      return
-
-    return
-
-  return

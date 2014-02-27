@@ -34,7 +34,13 @@
     "grunt": "~0.4.2",
     "ssh2": "~0.2.18",
     "moment": "*",
-    "grunt-contrib-coffee": "~0.10.1"
+    "grunt-contrib-coffee": "~0.10.1",
+    "q": "~1.0.0",
+    "git": "~0.1.5",
+    "nodegit": "~0.1.0",
+    "shelljs": "~0.2.6",
+    "underscore.string": "~2.3.3",
+    "underscore": "~1.6.0"
   },
   "peerDependencies": {
     "grunt": "~0.4.1"
