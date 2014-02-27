@@ -12,15 +12,9 @@ Git = require '../lib/git'
 
 Q = require 'q'
 moment = require "moment"
-fs = require 'fs'
 util = require 'util'
-
 path = require 'path'
-#nodegit = require 'nodegit'
-shelljs = require 'shelljs'
 _ = require 'underscore'
-
-
 
 
 module.exports = (grunt) ->
