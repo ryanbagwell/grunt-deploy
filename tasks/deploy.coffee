@@ -52,24 +52,26 @@ module.exports = (grunt) ->
       connection.on 'ready', ->
 
         connection.doesPathExist(options.buildPath).then (exists) ->
-          return connection.rmDir(options.buildPath) if exists
+          connection.rmDir(options.buildPath) if exists
         .then ->
-          return connection.mkDir(options.buildPath)
+          connection.mkDir(options.buildPath)
         .then ->
-          return options.preLaunch(options, connection)
+          options.preLaunch(options, connection)
         .then ->
-          return connection.gitClone gitRemote, options.buildPath
+          connection.gitClone gitRemote, options.buildPath
         .then ->
-          return connection.gitReset(head, options.buildPath)
+          connection.gitReset(head, options.buildPath)
         .then ->
-          return options.postLaunch(options, connection)
+          options.postLaunch(options, connection)
         .then ->
           timeStamp = moment().format "YYYY-MM-DD-HH-mmssSSS"
-          return connection.mv options.buildPath, path.join(options.releasesPath, timeStamp)
+          connection.mv options.buildPath,
+            path.join(options.releasesPath, timeStamp)
         .then ->
-          return connection.rmDir path.join(options.releasesPath, 'current')
+          connection.rmDir path.join(options.releasesPath, 'current')
         .then ->
-          return connection.mkSymlink path.join(options.releasesPath, timeStamp), path.join(options.releasesPath, 'current')
+          connection.mkSymlink path.join(options.releasesPath, timeStamp),
+            path.join(options.releasesPath, 'current')
         .fail (error) ->
           console.log error
         .fin ->
