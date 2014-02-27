@@ -10,17 +10,17 @@ module.exports = class Git
 
     getRemoteOrigin: ->
         cmd = util.format 'git --git-dir=%s config --get remote.origin.url', @repoPath
-        return @_exec(cmd)
+        @_exec(cmd)
 
     getCurrentBranchName: ->
         cmd = util.format 'git --git-dir=%s rev-parse --abbrev-ref HEAD', @repoPath
-        return @_exec(cmd)
+        @_exec(cmd)
 
     getHeadCommit: ->
         cmd = util.format 'git --git-dir=%s rev-parse HEAD', @repoPath
-        return @_exec(cmd)
+        @_exec(cmd)
 
     _exec: (cmd) ->
-        result = shelljs.exec(cmd, slient:true).output
-        return _.str.trim result
+        result = shelljs.exec(cmd, silent:true).output
+        _.str.trim result
 
