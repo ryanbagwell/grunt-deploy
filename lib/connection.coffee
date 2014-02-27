@@ -33,7 +33,7 @@ class Connection extends Ssh
 
     deferred = Q.defer()
 
-    console.log "Executing: #{cmd}" if log
+    console.log "Executing: #{cmd}"
 
     @exec cmd, (err, stream) ->
 
@@ -79,6 +79,16 @@ class Connection extends Ssh
     cmd = util.format 'git --git-dir=%s reset --hard %s', gitPath, sha
     return @run cmd, true, (result) ->
       console.log "Reset HEAD to #{sha}"
+
+  mkSymlink: (file, link) ->
+    cmd = "ln -s #{file} #{link}"
+    return @run cmd, true, (result) ->
+      console.log "Linking #{file} to #{link}"
+
+  mv: (target, dest) ->
+    cmd = "mv #{target} #{dest}"
+    return @run cmd, true, (result) ->
+      console.log "Moved #{target} to #{dest}"
 
   log: (msg) ->
     console.log msg
